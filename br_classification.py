@@ -14,7 +14,7 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score, roc_curve, auc)
 
 # Classifier
-from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LogisticRegression
 
 # Text cleaning & stopwords
 import nltk
@@ -97,7 +97,7 @@ pd_tplusb.to_csv('Title+Body.csv', index=False, columns=["id", "Number", "sentim
 datafile = 'Title+Body.csv'
 
 # 2) Number of repeated experiments
-REPEAT = 10
+REPEAT = 100
 
 # 3) Output CSV file name
 out_csv_name = f'output/{project}_NB.csv'
@@ -118,7 +118,8 @@ data[text_col] = data[text_col].apply(clean_str)
 # ========== Hyperparameter grid ==========
 # We use logspace for var_smoothing: [1e-12, 1e-11, ..., 1]
 params = {
-    'var_smoothing': np.logspace(-12, 0, 13)
+    'C': [0.01, 0.1, 1, 10, 100],  # Regularization strength
+    'solver': ['lbfgs']  # 'lbfgs' supports L2 penalty
 }
 
 # Lists to store metrics across repeated runs
@@ -148,17 +149,15 @@ for repeated_time in range(REPEAT):
     )
     X_train = tfidf.fit_transform(train_text)
     X_test = tfidf.transform(test_text)
-    X_test = X_test.toarray()  # Convert sparse matrix to dense for GaussianNB
    
-    # --- 4.3 Naive Bayes model & GridSearch ---
-    clf = GaussianNB()
+    # --- 4.3 Logistic Regression & GridSearch ---
+    clf = LogisticRegression(max_iter=1000, random_state=999, class_weight='balanced')  # Increased max_iter for convergence
     grid = GridSearchCV(
         clf,
         params,
         cv=5,              # 5-fold CV (can be changed)
         scoring='roc_auc'  # Using roc_auc as the metric for selection
     )
-    X_train = X_train.toarray() # Convert sparse matrix to dense for GaussianNB
     grid.fit(X_train, y_train)
 
     # Retrieve the best model
