@@ -68,8 +68,8 @@ def clean_str(string):
 ########## 3. Download & read data ##########
 import os
 import subprocess
-# Choose the project (options: 'pytorch', 'tensorflow', 'keras', 'incubator-mxnet', 'caffe')
-project = 'pytorch'
+options = ['pytorch', 'tensorflow', 'keras', 'incubator-mxnet', 'caffe']
+project = options[1]  # Change this index to select a different project
 path = f'datasets/{project}.csv'
 
 pd_all = pd.read_csv(path)
@@ -116,10 +116,9 @@ data[text_col] = data[text_col].apply(remove_stopwords)
 data[text_col] = data[text_col].apply(clean_str)
 
 # ========== Hyperparameter grid ==========
-# We use logspace for var_smoothing: [1e-12, 1e-11, ..., 1]
 params = {
     'C': [0.01, 0.1, 1, 10, 100],  # Regularization strength
-    'solver': ['lbfgs']  # 'lbfgs' supports L2 penalty
+    'solver': ['lbfgs'] 
 }
 
 # Lists to store metrics across repeated runs
@@ -145,17 +144,17 @@ for repeated_time in range(REPEAT):
     # --- 4.2 TF-IDF vectorization ---
     tfidf = TfidfVectorizer(
         ngram_range=(1, 2),
-        max_features=1000  # Adjust as needed
+        max_features=1000
     )
     X_train = tfidf.fit_transform(train_text)
     X_test = tfidf.transform(test_text)
    
     # --- 4.3 Logistic Regression & GridSearch ---
-    clf = LogisticRegression(max_iter=1000, random_state=999, class_weight='balanced')  # Increased max_iter for convergence
+    clf = LogisticRegression(max_iter=1000, random_state=999, class_weight='balanced')
     grid = GridSearchCV(
         clf,
         params,
-        cv=5,              # 5-fold CV (can be changed)
+        cv=5,              # 5-fold Cross Validation
         scoring='roc_auc'  # Using roc_auc as the metric for selection
     )
     grid.fit(X_train, y_train)
@@ -184,8 +183,6 @@ for repeated_time in range(REPEAT):
     f1_scores.append(f1)
 
     # AUC
-    # If labels are 0/1 only, this works directly.
-    # If labels are something else, adjust pos_label accordingly.
     fpr, tpr, _ = roc_curve(y_test, y_pred, pos_label=1)
     auc_val = auc(fpr, tpr)
     auc_values.append(auc_val)
