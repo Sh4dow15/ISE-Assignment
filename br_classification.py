@@ -97,10 +97,10 @@ pd_tplusb.to_csv('Title+Body.csv', index=False, columns=["id", "Number", "sentim
 datafile = 'Title+Body.csv'
 
 # 2) Number of repeated experiments
-REPEAT = 100
+REPEAT = 10
 
 # 3) Output CSV file name
-out_csv_name = f'output/{project}_NB.csv'
+out_csv_name = f'output/{project}_LR.csv'
 
 # ========== Read and clean data ==========
 data = pd.read_csv(datafile).fillna('')
@@ -194,7 +194,7 @@ final_recall    = np.mean(recalls)
 final_f1        = np.mean(f1_scores)
 final_auc       = np.mean(auc_values)
 
-print("=== Naive Bayes + TF-IDF Results ===")
+print("=== Logistic Regression + TF-IDF Results ===")
 print(f"Number of repeats:     {REPEAT}")
 print(f"Average Accuracy:      {final_accuracy:.4f}")
 print(f"Average Precision:     {final_precision:.4f}")
