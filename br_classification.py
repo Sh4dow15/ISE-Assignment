@@ -14,7 +14,7 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score, roc_curve, auc)
 
 # Classifier
-from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LogisticRegression
 
 # Text cleaning & stopwords
 import nltk
@@ -68,8 +68,8 @@ def clean_str(string):
 ########## 3. Download & read data ##########
 import os
 import subprocess
-# Choose the project (options: 'pytorch', 'tensorflow', 'keras', 'incubator-mxnet', 'caffe')
-project = 'pytorch'
+options = ['pytorch', 'tensorflow', 'keras', 'incubator-mxnet', 'caffe']
+project = options[0]  # Change this index to select a different project
 path = f'datasets/{project}.csv'
 
 pd_all = pd.read_csv(path)
@@ -100,7 +100,7 @@ datafile = 'Title+Body.csv'
 REPEAT = 10
 
 # 3) Output CSV file name
-out_csv_name = f'output/{project}_NB.csv'
+out_csv_name = f'output/{project}_LR.csv'
 
 # ========== Read and clean data ==========
 data = pd.read_csv(datafile).fillna('')
@@ -116,9 +116,9 @@ data[text_col] = data[text_col].apply(remove_stopwords)
 data[text_col] = data[text_col].apply(clean_str)
 
 # ========== Hyperparameter grid ==========
-# We use logspace for var_smoothing: [1e-12, 1e-11, ..., 1]
 params = {
-    'var_smoothing': np.logspace(-12, 0, 13)
+    'C': [0.01, 0.1, 1, 10, 100],  # Regularization strength
+    'solver': ['lbfgs'] 
 }
 
 # Lists to store metrics across repeated runs
@@ -144,21 +144,19 @@ for repeated_time in range(REPEAT):
     # --- 4.2 TF-IDF vectorization ---
     tfidf = TfidfVectorizer(
         ngram_range=(1, 2),
-        max_features=1000  # Adjust as needed
+        max_features=1000
     )
     X_train = tfidf.fit_transform(train_text)
     X_test = tfidf.transform(test_text)
-    X_test = X_test.toarray()  # Convert sparse matrix to dense for GaussianNB
    
-    # --- 4.3 Naive Bayes model & GridSearch ---
-    clf = GaussianNB()
+    # --- 4.3 Logistic Regression & GridSearch ---
+    clf = LogisticRegression(max_iter=1000, random_state=999, class_weight='balanced')
     grid = GridSearchCV(
         clf,
         params,
-        cv=5,              # 5-fold CV (can be changed)
+        cv=5,              # 5-fold Cross Validation
         scoring='roc_auc'  # Using roc_auc as the metric for selection
     )
-    X_train = X_train.toarray() # Convert sparse matrix to dense for GaussianNB
     grid.fit(X_train, y_train)
 
     # Retrieve the best model
@@ -167,6 +165,7 @@ for repeated_time in range(REPEAT):
 
     # --- 4.4 Make predictions & evaluate ---
     y_pred = best_clf.predict(X_test)
+    y_prob = best_clf.predict_proba(X_test)[:, 1]
 
     # Accuracy
     acc = accuracy_score(y_test, y_pred)
@@ -185,9 +184,7 @@ for repeated_time in range(REPEAT):
     f1_scores.append(f1)
 
     # AUC
-    # If labels are 0/1 only, this works directly.
-    # If labels are something else, adjust pos_label accordingly.
-    fpr, tpr, _ = roc_curve(y_test, y_pred, pos_label=1)
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
     auc_val = auc(fpr, tpr)
     auc_values.append(auc_val)
 
@@ -198,7 +195,7 @@ final_recall    = np.mean(recalls)
 final_f1        = np.mean(f1_scores)
 final_auc       = np.mean(auc_values)
 
-print("=== Naive Bayes + TF-IDF Results ===")
+print("=== Logistic Regression + TF-IDF Results ===")
 print(f"Number of repeats:     {REPEAT}")
 print(f"Average Accuracy:      {final_accuracy:.4f}")
 print(f"Average Precision:     {final_precision:.4f}")
