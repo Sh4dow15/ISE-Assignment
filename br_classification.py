@@ -69,7 +69,7 @@ def clean_str(string):
 import os
 import subprocess
 options = ['pytorch', 'tensorflow', 'keras', 'incubator-mxnet', 'caffe']
-project = options[1]  # Change this index to select a different project
+project = options[0]  # Change this index to select a different project
 path = f'datasets/{project}.csv'
 
 pd_all = pd.read_csv(path)
@@ -165,6 +165,7 @@ for repeated_time in range(REPEAT):
 
     # --- 4.4 Make predictions & evaluate ---
     y_pred = best_clf.predict(X_test)
+    y_prob = best_clf.predict_proba(X_test)[:, 1]
 
     # Accuracy
     acc = accuracy_score(y_test, y_pred)
@@ -183,7 +184,7 @@ for repeated_time in range(REPEAT):
     f1_scores.append(f1)
 
     # AUC
-    fpr, tpr, _ = roc_curve(y_test, y_pred, pos_label=1)
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
     auc_val = auc(fpr, tpr)
     auc_values.append(auc_val)
 
